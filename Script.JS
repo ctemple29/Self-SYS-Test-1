@@ -1,15 +1,12 @@
 const canvas = document.querySelector('#canvas');
 const context = canvas.getContext('2d');
-const figures = [];
 const palette = {
 	background: '#f4f0e8',
 	panel: '#fbfaf6',
 	line: '#d6d0c4',
-	ink: '#24313a',
-	accent: '#e6815d'
+	ink: '#24313a'
 };
 
-let pointer = null;
 let pixelRatio = 1;
 
 function resizeCanvas() {
@@ -71,29 +68,8 @@ function draw() {
 	context.lineTo(width, halfHeight);
 	context.stroke();
 
-	figures.forEach((figure) => drawFigure(figure.x, figure.y));
-
-	if (pointer && pointer.x < halfWidth && pointer.y < halfHeight) {
-		drawFigure(pointer.x, pointer.y, 1, palette.accent);
-	}
+	drawFigure(halfWidth / 2, halfHeight / 2 + 10);
 }
-
-canvas.addEventListener('pointermove', (event) => {
-	pointer = { x: event.clientX, y: event.clientY };
-	draw();
-});
-
-canvas.addEventListener('pointerleave', () => {
-	pointer = null;
-	draw();
-});
-
-canvas.addEventListener('pointerdown', (event) => {
-	if (event.clientX < window.innerWidth / 2 && event.clientY < window.innerHeight / 2) {
-		figures.push({ x: event.clientX, y: event.clientY });
-		draw();
-	}
-});
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
