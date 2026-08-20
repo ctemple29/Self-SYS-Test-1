@@ -1,5 +1,6 @@
 const canvas = document.querySelector('#canvas');
 const context = canvas.getContext('2d');
+const cathedral = new Image();
 const palette = {
 	background: '#f4f0e8',
 	panel: '#fbfaf6',
@@ -8,6 +9,9 @@ const palette = {
 };
 
 let pixelRatio = 1;
+
+cathedral.src = 'Notre-Dame_west-facade.avif';
+cathedral.addEventListener('load', draw);
 
 function resizeCanvas() {
 	pixelRatio = window.devicePixelRatio || 1;
@@ -58,6 +62,20 @@ function draw() {
 	context.fillStyle = palette.panel;
 	context.fillRect(0, 0, halfWidth, halfHeight);
 	context.fillRect(halfWidth, halfHeight, halfWidth, halfHeight);
+
+	const topRightThird = halfWidth / 3;
+	context.fillStyle = '#000';
+	context.fillRect(halfWidth, 0, topRightThird, halfHeight);
+	context.fillRect(halfWidth + topRightThird * 2, 0, topRightThird, halfHeight);
+	if (cathedral.complete && cathedral.naturalWidth > 0) {
+		context.drawImage(
+			cathedral,
+			halfWidth + topRightThird,
+			0,
+			topRightThird,
+			halfHeight
+		);
+	}
 
 	context.strokeStyle = palette.line;
 	context.lineWidth = 2;
