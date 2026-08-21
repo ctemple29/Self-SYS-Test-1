@@ -1,6 +1,11 @@
 const canvas = document.querySelector('#canvas');
 const context = canvas.getContext('2d');
 const cathedral = new Image();
+const landscapeImages = [
+	{ image: new Image(), source: 'Camelback.jpg' },
+	{ image: new Image(), source: 'Notre-Dame_west-facade.avif' },
+	{ image: new Image(), source: 'Rocky Mountains.webp' }
+];
 const palette = {
 	background: '#f4f0e8',
 	panel: '#fbfaf6',
@@ -9,9 +14,16 @@ const palette = {
 };
 
 let pixelRatio = 1;
+let hoveredSegment = null;
+let hoveredLandscapeSegment = null;
+let selectedLandscape = Math.floor(Math.random() * landscapeImages.length);
 
 cathedral.src = 'Notre-Dame_west-facade.avif';
 cathedral.addEventListener('load', draw);
+landscapeImages.forEach(({ image, source }) => {
+	image.src = source;
+	image.addEventListener('load', draw);
+});
 
 function resizeCanvas() {
 	pixelRatio = window.devicePixelRatio || 1;
@@ -49,6 +61,45 @@ function drawFigure(x, y, scale = 1, color = palette.ink) {
 	context.restore();
 }
 
+function drawSegmentedImage(image, x, y, width, height, hoveredImageSegment) {
+	const panelThird = width / 3;
+
+	context.fillStyle = '#000';
+	context.fillRect(x, y, panelThird, height);
+	context.fillRect(x + panelThird * 2, y, panelThird, height);
+
+	if (!image.complete || image.naturalWidth === 0) {
+		return;
+	}
+
+	const sourceThird = image.naturalWidth / 3;
+	context.drawImage(
+		image,
+		sourceThird,
+		0,
+		sourceThird,
+		image.naturalHeight,
+		x + panelThird,
+		y,
+		panelThird,
+		height
+	);
+
+	if (hoveredImageSegment === 0 || hoveredImageSegment === 2) {
+		context.drawImage(
+			image,
+			sourceThird * hoveredImageSegment,
+			0,
+			sourceThird,
+			image.naturalHeight,
+			x + panelThird * hoveredImageSegment,
+			y,
+			panelThird,
+			height
+		);
+	}
+}
+
 function draw() {
 	const width = window.innerWidth;
 	const height = window.innerHeight;
@@ -64,18 +115,22 @@ function draw() {
 	context.fillRect(halfWidth, halfHeight, halfWidth, halfHeight);
 
 	const topRightThird = halfWidth / 3;
-	context.fillStyle = '#000';
-	context.fillRect(halfWidth, 0, topRightThird, halfHeight);
-	context.fillRect(halfWidth + topRightThird * 2, 0, topRightThird, halfHeight);
-	if (cathedral.complete && cathedral.naturalWidth > 0) {
-		context.drawImage(
-			cathedral,
-			halfWidth + topRightThird,
-			0,
-			topRightThird,
-			halfHeight
-		);
-	}
+	drawSegmentedImage(
+		cathedral,
+		halfWidth,
+		0,
+		halfWidth,
+		halfHeight,
+		hoveredSegment
+	);
+	drawSegmentedImage(
+		landscapeImages[selectedLandscape].image,
+		0,
+		halfHeight,
+		halfWidth,
+		halfHeight,
+		hoveredLandscapeSegment
+	);
 
 	context.strokeStyle = palette.line;
 	context.lineWidth = 2;
@@ -88,6 +143,50 @@ function draw() {
 
 	drawFigure(halfWidth / 2, halfHeight / 2 + 10);
 }
+
+canvas.addEventListener('pointermove', (event) => {
+	const halfWidth = window.innerWidth / 2;
+	const halfHeight = window.innerHeight / 2;
+
+	if (event.clientX >= halfWidth && event.clientY < halfHeight) {
+		const topRightThird = halfWidth / 3;
+		const segment = Math.floor((event.clientX - halfWidth) / topRightThird);
+		hoveredSegment = segment === 0 || segment === 2 ? segment : null;
+	} else {
+		hoveredSegment = null;
+	}
+
+	if (event.clientX < halfWidth && event.clientY >= halfHeight) {
+		const bottomLeftThird = halfWidth / 3;
+		const segment = Math.floor(event.clientX / bottomLeftThird);
+		hoveredLandscapeSegment = segment === 0 || segment === 2 ? segment : null;
+	} else {
+		hoveredLandscapeSegment = null;
+	}
+
+	draw();
+});
+
+canvas.addEventListener('pointerleave', () => {
+	hoveredSegment = null;
+	hoveredLandscapeSegment = null;
+	draw();
+});
+
+canvas.addEventListener('pointerdown', (event) => {
+	const halfWidth = window.innerWidth / 2;
+	const halfHeight = window.innerHeight / 2;
+
+	if (event.clientX < halfWidth && event.clientY >= halfHeight) {
+		let nextLandscape;
+		do {
+			nextLandscape = Math.floor(Math.random() * landscapeImages.length);
+		} while (nextLandscape === selectedLandscape);
+
+		selectedLandscape = nextLandscape;
+		draw();
+	}
+});
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
