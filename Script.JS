@@ -14,8 +14,9 @@ const palette = {
 };
 
 let pixelRatio = 1;
-let hoveredSegment = null;
-let hoveredLandscapeSegment = null;
+const figures = [];
+const revealedTopRightSegments = new Set();
+const revealedBottomLeftSegments = new Set();
 let selectedLandscape = Math.floor(Math.random() * landscapeImages.length);
 let availableLandscapes = landscapeImages
 	.map((_, index) => index)
@@ -143,6 +144,9 @@ function draw() {
 	const height = window.innerHeight;
 	const halfWidth = width / 2;
 	const halfHeight = height / 2;
+	if (figures.length === 0) {
+		figures.push({ x: halfWidth / 2, y: halfHeight / 2 + 10 });
+	}
 
 	context.clearRect(0, 0, width, height);
 	context.fillStyle = palette.background;
@@ -158,7 +162,7 @@ function draw() {
 		0,
 		halfWidth,
 		halfHeight,
-		hoveredSegment
+		revealedTopRightSegments
 	);
 	drawSegmentedImage(
 		landscapeImages[selectedLandscape].image,
@@ -166,7 +170,7 @@ function draw() {
 		halfHeight,
 		halfWidth,
 		halfHeight,
-		hoveredLandscapeSegment
+		revealedBottomLeftSegments
 	);
 	drawSegmentedImage(
 		landscapeImages[selectedBottomRight].image,
@@ -187,7 +191,7 @@ function draw() {
 	context.lineTo(width, halfHeight);
 	context.stroke();
 
-	drawFigure(halfWidth / 2, halfHeight / 2 + 10);
+	figures.forEach(({ x, y }) => drawFigure(x, y));
 }
 
 canvas.addEventListener('pointermove', (event) => {
@@ -197,17 +201,17 @@ canvas.addEventListener('pointermove', (event) => {
 	if (event.clientX >= halfWidth && event.clientY < halfHeight) {
 		const topRightThird = halfWidth / 3;
 		const segment = Math.floor((event.clientX - halfWidth) / topRightThird);
-		hoveredSegment = segment === 0 || segment === 2 ? segment : null;
-	} else {
-		hoveredSegment = null;
+		if (segment === 0 || segment === 2) {
+			revealedTopRightSegments.add(segment);
+		}
 	}
 
 	if (event.clientX < halfWidth && event.clientY >= halfHeight) {
 		const bottomLeftThird = halfWidth / 3;
 		const segment = Math.floor(event.clientX / bottomLeftThird);
-		hoveredLandscapeSegment = segment === 0 || segment === 2 ? segment : null;
-	} else {
-		hoveredLandscapeSegment = null;
+		if (segment === 0 || segment === 2) {
+			revealedBottomLeftSegments.add(segment);
+		}
 	}
 
 	if (event.clientX >= halfWidth && event.clientY >= halfHeight) {
@@ -222,8 +226,6 @@ canvas.addEventListener('pointermove', (event) => {
 });
 
 canvas.addEventListener('pointerleave', () => {
-	hoveredSegment = null;
-	hoveredLandscapeSegment = null;
 	draw();
 });
 
@@ -238,6 +240,7 @@ canvas.addEventListener('pointerdown', (event) => {
 
 		const randomPosition = Math.floor(Math.random() * availableLandscapes.length);
 		selectedLandscape = availableLandscapes.splice(randomPosition, 1)[0];
+		revealedBottomLeftSegments.clear();
 		draw();
 	}
 
@@ -249,6 +252,11 @@ canvas.addEventListener('pointerdown', (event) => {
 		const randomPosition = Math.floor(Math.random() * availableBottomRight.length);
 		selectedBottomRight = availableBottomRight.splice(randomPosition, 1)[0];
 		revealedBottomRightSegments.clear();
+		draw();
+	}
+
+	if (event.clientX < halfWidth && event.clientY < halfHeight) {
+		figures.push({ x: event.clientX, y: event.clientY + 10 });
 		draw();
 	}
 });
