@@ -17,6 +17,9 @@ let pixelRatio = 1;
 let hoveredSegment = null;
 let hoveredLandscapeSegment = null;
 let selectedLandscape = Math.floor(Math.random() * landscapeImages.length);
+let availableLandscapes = landscapeImages
+	.map((_, index) => index)
+	.filter((index) => index !== selectedLandscape);
 
 cathedral.src = 'Notre-Dame_west-facade.avif';
 cathedral.addEventListener('load', draw);
@@ -114,7 +117,6 @@ function draw() {
 	context.fillRect(0, 0, halfWidth, halfHeight);
 	context.fillRect(halfWidth, halfHeight, halfWidth, halfHeight);
 
-	const topRightThird = halfWidth / 3;
 	drawSegmentedImage(
 		cathedral,
 		halfWidth,
@@ -178,12 +180,12 @@ canvas.addEventListener('pointerdown', (event) => {
 	const halfHeight = window.innerHeight / 2;
 
 	if (event.clientX < halfWidth && event.clientY >= halfHeight) {
-		let nextLandscape;
-		do {
-			nextLandscape = Math.floor(Math.random() * landscapeImages.length);
-		} while (nextLandscape === selectedLandscape);
+		if (availableLandscapes.length === 0) {
+			availableLandscapes = landscapeImages.map((_, index) => index);
+		}
 
-		selectedLandscape = nextLandscape;
+		const randomPosition = Math.floor(Math.random() * availableLandscapes.length);
+		selectedLandscape = availableLandscapes.splice(randomPosition, 1)[0];
 		draw();
 	}
 });
