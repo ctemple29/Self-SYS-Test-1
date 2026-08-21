@@ -20,6 +20,11 @@ let selectedLandscape = Math.floor(Math.random() * landscapeImages.length);
 let availableLandscapes = landscapeImages
 	.map((_, index) => index)
 	.filter((index) => index !== selectedLandscape);
+let selectedBottomRight = Math.floor(Math.random() * landscapeImages.length);
+let availableBottomRight = landscapeImages
+	.map((_, index) => index)
+	.filter((index) => index !== selectedBottomRight);
+const revealedBottomRightSegments = new Set();
 
 cathedral.src = 'Notre-Dame_west-facade.avif';
 cathedral.addEventListener('load', draw);
@@ -64,12 +69,35 @@ function drawFigure(x, y, scale = 1, color = palette.ink) {
 	context.restore();
 }
 
-function drawSegmentedImage(image, x, y, width, height, hoveredImageSegment) {
+function drawSegmentedImage(
+	image,
+	x,
+	y,
+	width,
+	height,
+	revealedSegments,
+	useVignette = false
+) {
 	const panelThird = width / 3;
 
-	context.fillStyle = '#000';
-	context.fillRect(x, y, panelThird, height);
-	context.fillRect(x + panelThird * 2, y, panelThird, height);
+	[0, 2].forEach((segment) => {
+		if (useVignette) {
+			const gradient = context.createRadialGradient(
+				x + panelThird * segment + panelThird / 2,
+				y + height / 2,
+				0,
+				x + panelThird * segment + panelThird / 2,
+				y + height / 2,
+				Math.max(panelThird, height) / 2
+			);
+			gradient.addColorStop(0, '#000');
+			gradient.addColorStop(1, '#292929');
+			context.fillStyle = gradient;
+		} else {
+			context.fillStyle = '#000';
+		}
+		context.fillRect(x + panelThird * segment, y, panelThird, height);
+	});
 
 	if (!image.complete || image.naturalWidth === 0) {
 		return;
@@ -88,19 +116,26 @@ function drawSegmentedImage(image, x, y, width, height, hoveredImageSegment) {
 		height
 	);
 
-	if (hoveredImageSegment === 0 || hoveredImageSegment === 2) {
+	const segmentsToReveal = revealedSegments instanceof Set
+		? [...revealedSegments]
+		: [revealedSegments];
+	segmentsToReveal.forEach((segment) => {
+		if (segment !== 0 && segment !== 2) {
+			return;
+		}
+
 		context.drawImage(
 			image,
-			sourceThird * hoveredImageSegment,
+			sourceThird * segment,
 			0,
 			sourceThird,
 			image.naturalHeight,
-			x + panelThird * hoveredImageSegment,
+			x + panelThird * segment,
 			y,
 			panelThird,
 			height
 		);
-	}
+	});
 }
 
 function draw() {
@@ -132,6 +167,15 @@ function draw() {
 		halfWidth,
 		halfHeight,
 		hoveredLandscapeSegment
+	);
+	drawSegmentedImage(
+		landscapeImages[selectedBottomRight].image,
+		halfWidth,
+		halfHeight,
+		halfWidth,
+		halfHeight,
+		revealedBottomRightSegments,
+		true
 	);
 
 	context.strokeStyle = palette.line;
@@ -166,6 +210,14 @@ canvas.addEventListener('pointermove', (event) => {
 		hoveredLandscapeSegment = null;
 	}
 
+	if (event.clientX >= halfWidth && event.clientY >= halfHeight) {
+		const bottomRightThird = halfWidth / 3;
+		const segment = Math.floor((event.clientX - halfWidth) / bottomRightThird);
+		if (segment === 0 || segment === 2) {
+			revealedBottomRightSegments.add(segment);
+		}
+	}
+
 	draw();
 });
 
@@ -186,6 +238,17 @@ canvas.addEventListener('pointerdown', (event) => {
 
 		const randomPosition = Math.floor(Math.random() * availableLandscapes.length);
 		selectedLandscape = availableLandscapes.splice(randomPosition, 1)[0];
+		draw();
+	}
+
+	if (event.clientX >= halfWidth && event.clientY >= halfHeight) {
+		if (availableBottomRight.length === 0) {
+			availableBottomRight = landscapeImages.map((_, index) => index);
+		}
+
+		const randomPosition = Math.floor(Math.random() * availableBottomRight.length);
+		selectedBottomRight = availableBottomRight.splice(randomPosition, 1)[0];
+		revealedBottomRightSegments.clear();
 		draw();
 	}
 });
