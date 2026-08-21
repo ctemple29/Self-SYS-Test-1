@@ -26,6 +26,32 @@ let availableBottomRight = landscapeImages
 	.map((_, index) => index)
 	.filter((index) => index !== selectedBottomRight);
 const revealedBottomRightSegments = new Set();
+const panelText = [
+	{
+		x: 0,
+		y: 0,
+		title: 'The Mascot',
+		body: "Testing the ease of copying the stickfigure. Clicking controls imput which was added once I realised it wasn't exactly testing how easily the sigil could be copied."
+	},
+	{
+		x: 1,
+		y: 0,
+		title: 'The Foundations',
+		body: 'Testing the fundamentals of the hover-to-reveal behavior. Simply hovering over the blacked out segments reveals it. Added the fact it persists after hovering so one could have a proper chance to admire the piece, as intended.'
+	},
+	{
+		x: 0,
+		y: 1,
+		title: 'The Variety',
+		body: 'This is testing the randomisation of the image displayed as tested in test 2. The click of a mouse randomises the image out of a current set of three.'
+	},
+	{
+		x: 1,
+		y: 1,
+		title: 'The Appeal',
+		body: 'This is testing the visual effect of vignette to add some texture and not to have a simple black box. This is not controlled by anything and was changed slightly, less intense of a fade to grey.'
+	}
+];
 
 cathedral.src = 'Notre-Dame_west-facade.avif';
 cathedral.addEventListener('load', draw);
@@ -139,6 +165,61 @@ function drawSegmentedImage(
 	});
 }
 
+function wrapText(text, maxWidth) {
+	const words = text.split(' ');
+	const lines = [];
+	let line = '';
+
+	words.forEach((word) => {
+		const candidate = line ? `${line} ${word}` : word;
+		if (context.measureText(candidate).width <= maxWidth || !line) {
+			line = candidate;
+		} else {
+			lines.push(line);
+			line = word;
+		}
+	});
+
+	if (line) {
+		lines.push(line);
+	}
+
+	return lines;
+}
+
+function drawPanelText(width, height) {
+	const panelWidth = width / 2;
+	const panelHeight = height / 2;
+	const padding = Math.max(12, Math.min(panelWidth, panelHeight) * 0.035);
+	const titleSize = Math.max(16, Math.min(28, panelWidth * 0.045));
+	const bodySize = Math.max(9, Math.min(14, panelWidth * 0.021));
+	const lineHeight = bodySize * 1.35;
+
+	panelText.forEach(({ x, y, title, body }) => {
+		const panelX = x * panelWidth;
+		const panelY = y * panelHeight;
+		const textWidth = panelWidth - padding * 2;
+		const textColor = x === 0 && y === 0 ? palette.ink : '#fff';
+
+		context.save();
+		context.fillStyle = textColor;
+		context.shadowColor = textColor === '#fff' ? 'rgba(0, 0, 0, 0.65)' : 'rgba(255, 255, 255, 0.7)';
+		context.shadowBlur = 3;
+		context.textAlign = 'left';
+		context.textBaseline = 'top';
+		context.font = `700 ${titleSize}px "Nanum Myeongjo", serif`;
+		context.fillText(title, panelX + padding, panelY + padding);
+
+		context.font = `400 ${bodySize}px "Nanum Myeongjo", serif`;
+		const lines = wrapText(body, textWidth);
+		const bodyStart = panelY + panelHeight - padding - lines.length * lineHeight;
+		lines.forEach((line, index) => {
+			context.fillText(line, panelX + padding, bodyStart + index * lineHeight);
+		});
+		context.restore();
+	});
+}
+
 function draw() {
 	const width = window.innerWidth;
 	const height = window.innerHeight;
@@ -192,6 +273,7 @@ function draw() {
 	context.stroke();
 
 	figures.forEach(({ x, y }) => drawFigure(x, y));
+	drawPanelText(width, height);
 }
 
 canvas.addEventListener('pointermove', (event) => {
@@ -263,3 +345,6 @@ canvas.addEventListener('pointerdown', (event) => {
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+if (document.fonts) {
+	document.fonts.ready.then(draw);
+}
